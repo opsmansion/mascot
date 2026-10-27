@@ -1,0 +1,61 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="site-header">
+        <a class="brand" href="/">
+          <img src="/favicon.svg" alt="" width="32" height="32" />
+          <span>Mascots</span>
+        </a>
+        <nav aria-label="Main navigation">
+          <a href="/" aria-current={currentPath === "/" ? "page" : undefined}>Browse</a>
+          <a href="/make" aria-current={currentPath === "/make" ? "page" : undefined}>Create</a>
+        </nav>
+      </header>
+      <main>
+        <slot />
+      </main>
+      <footer class="site-footer">
+        <div class="site-footer-top">
+          <div class="footer-identity">
+            <a class="footer-brand" href="/">Mascots</a>
+            <span>by <a href="https://www.opesimansion.com">Opesi Mansion</a></span>
+          </div>
+          <nav aria-label="Footer navigation">
+            <a href="/">Browse mascots</a>
+            <a href="/make">Make your own</a>
+          </nav>
+        </div>
+        <p class="footer-licence">
+          <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> · Credit Opesi Mansion
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "opesi-mansion-mascots",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm --filter @opesi-mascots/web build",
+    "start": "pnpm --filter @opesi-mascots/server start",
+    "test": "pnpm -r test",
+    "check": "pnpm --filter @opesi-mascots/web check"
+  },
+  "packageManager": "pnpm@11.10.0"
+}

@@ -1,0 +1,11 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "include": [".astro/types.d.ts", "**/*"],
+  "exclude": ["dist"],
+  "compilerOptions": {
+    // Type-check the engine's JavaScript source instead of treating the workspace package as untyped.
+    "paths": {
+      "@opesi-mascots/engine": ["../../packages/engine/src/index.mjs"]
+    }
+  }
+}

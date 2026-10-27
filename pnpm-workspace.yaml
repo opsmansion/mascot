@@ -1,0 +1,14 @@
+packages:
+  - apps/*
+  - packages/*
+
+allowBuilds:
+  esbuild: true
+  sharp: false
+  unrs-resolver: false
+
+# @napi-rs/wasm-runtime (used by astro check) imports @emnapi/core without declaring it.
+packageExtensions:
+  "@napi-rs/wasm-runtime":
+    dependencies:
+      "@emnapi/core": "^1.11.3"

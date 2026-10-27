@@ -1,0 +1,241 @@
+---
+import { creditLine, iconSets, iconSvg, LICENCE_NAME, LICENCE_URL, mascots, zipName } from "@opesi-mascots/engine";
+import Base from "../layouts/Base.astro";
+import ChoiceCheck from "../components/ChoiceCheck.astro";
+import ChoiceDropdown from "../components/ChoiceDropdown.astro";
+
+export function getStaticPaths() {
+  return mascots.map((mascot) => ({ params: { slug: mascot.slug }, props: { mascot } }));
+}
+
+const { mascot } = Astro.props;
+const base = `/icons/${mascot.slug}`;
+const sets = iconSets(mascot);
+
+// Every file under /icons/ is drawn on request by the server (apps/server).
+const zip = zipName(mascot.slug);
+---
+
+<Base
+  title={`${mascot.name} app icon, free | Mascots`}
+  description={`${mascot.about} Free to download in every iOS, Android, macOS, and web size.`}
+>
+  <section class="mascot-hero">
+    <div class="icon" role="img" aria-label={`${mascot.name} app icon`} set:html={iconSvg(mascot, { layout: "rounded", id: "hero" })} />
+    <div class="mascot-content">
+      <div id="mascot-intro">
+        <h1>{mascot.name}</h1>
+        <a id="download-entry" class="button" href={`${base}/${zip}`} download aria-controls="download-flow" aria-expanded="false">Download all icons (.zip)</a>
+      </div>
+
+      <section id="download-flow" class="download-flow" data-base={base} hidden>
+        <div class="download-flow-header">
+          <p id="download-step" class="download-step" aria-live="polite">Step 1</p>
+          <button id="download-close" class="button secondary download-close" type="button" aria-label="Close download choices">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+
+        <div data-flow-screen="kind">
+          <h2 tabindex="-1">What would you like to download?</h2>
+          <div class="download-choices">
+            <button class="card download-choice" type="button" data-flow-kind="pack">
+              <strong>Complete icon pack</strong>
+              <ChoiceCheck />
+            </button>
+            <button class="card download-choice" type="button" data-flow-kind="file">
+              <strong>One file</strong>
+              <ChoiceCheck />
+            </button>
+          </div>
+        </div>
+
+        <div data-flow-screen="platform" hidden>
+          <h2 tabindex="-1">Which platform?</h2>
+          <div class="download-choices">
+            {sets.map((set, index) => (
+              <button class="card download-choice" type="button" data-flow-platform={index}>
+                {set.platform}
+                <ChoiceCheck />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div data-flow-screen="file" hidden>
+          <h2 tabindex="-1">Which file do you need?</h2>
+          {sets.map((set, index) => (
+            <div data-file-field={index} hidden>
+              <ChoiceDropdown
+                id={`download-file-${index}`}
+                label={`${set.platform} files`}
+                placeholder="Choose a file"
+                options={set.files.map((file) => ({ value: file.path, label: `${file.label} (${file.path})` }))}
+              />
+            </div>
+          ))}
+          <div class="download-actions">
+            <button id="file-continue" class="button" type="button" disabled>Continue</button>
+          </div>
+        </div>
+
+        <div data-flow-screen="ready" hidden>
+          <h2 tabindex="-1">Your download is ready.</h2>
+          <p id="download-selection" hidden></p>
+          <a id="download-final" class="button" href={`${base}/${zip}`} download>Download ZIP</a>
+        </div>
+
+        <div id="download-navigation" class="download-actions" hidden>
+          <button id="download-back" class="button secondary" type="button">Back</button>
+        </div>
+      </section>
+
+      <div class="credit">
+        <p><a href={LICENCE_URL}>{LICENCE_NAME}</a> · Credit Opesi Mansion</p>
+        <code>{creditLine(mascot.name, `/${mascot.slug}`)}</code>
+      </div>
+    </div>
+  </section>
+
+  <section class="platform">
+    <h2>More mascots</h2>
+    <div class="others">
+      {
+        mascots
+          .filter((m) => m.slug !== mascot.slug)
+          .map((m) => (
+            <a href={`/${m.slug}`} class="icon" aria-label={m.name} set:html={iconSvg(m, { layout: "rounded", id: `more-${m.slug}` })} />
+          ))
+      }
+    </div>
+  </section>
+</Base>
+
+<script>
+  import { animateFlow } from "../flow";
+  import { initChoiceDropdowns } from "../choice-dropdown";
+
+  initChoiceDropdowns();
+
+  const entry = document.querySelector<HTMLAnchorElement>("#download-entry")!;
+  const intro = document.querySelector<HTMLElement>("#mascot-intro")!;
+  const flow = document.querySelector<HTMLElement>("#download-flow")!;
+  const screens = [...flow.querySelectorAll<HTMLElement>("[data-flow-screen]")];
+  const step = flow.querySelector<HTMLElement>("#download-step")!;
+  const closeButton = flow.querySelector<HTMLButtonElement>("#download-close")!;
+  const navigation = flow.querySelector<HTMLElement>("#download-navigation")!;
+  const back = flow.querySelector<HTMLButtonElement>("#download-back")!;
+  const continueButton = flow.querySelector<HTMLButtonElement>("#file-continue")!;
+  const selection = flow.querySelector<HTMLElement>("#download-selection")!;
+  const final = flow.querySelector<HTMLAnchorElement>("#download-final")!;
+  const fileFields = [...flow.querySelectorAll<HTMLElement>("[data-file-field]")];
+  let current = "kind";
+  let kind = "pack";
+  let fileField: HTMLElement | undefined;
+  let transitioning = false;
+  let confirming = false;
+  entry.textContent = "Choose download";
+
+  async function confirmChoice(button: HTMLButtonElement, continueFlow: () => Promise<void>) {
+    if (transitioning || confirming) return;
+    confirming = true;
+    button.dataset.selected = "true";
+    try {
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 300));
+      }
+      await continueFlow();
+    } finally {
+      delete button.dataset.selected;
+      confirming = false;
+    }
+  }
+
+  async function show(screen: string, direction: "forward" | "back" = "forward") {
+    if (transitioning) return;
+    transitioning = true;
+    const previous = flow.hidden ? intro : screens.find((section) => !section.hidden)!;
+    await animateFlow(previous, `download-exit-${direction}`);
+    previous.hidden = true;
+    current = screen;
+    flow.hidden = false;
+    entry.setAttribute("aria-expanded", "true");
+    for (const section of screens) section.hidden = section.dataset.flowScreen !== screen;
+    step.textContent = screen === "kind" ? "Step 1" : kind === "pack" ? "Step 2 of 2" : `Step ${screen === "platform" ? 2 : screen === "file" ? 3 : 4} of 4`;
+    navigation.hidden = screen === "kind";
+    const next = screens.find((section) => section.dataset.flowScreen === screen)!;
+    const entering = animateFlow(next, `download-enter-${direction}`);
+    next.querySelector<HTMLElement>("h2")!.focus();
+    await entering;
+    transitioning = false;
+  }
+
+  async function close() {
+    if (transitioning || confirming) return;
+    transitioning = true;
+    await animateFlow(screens.find((section) => !section.hidden)!, "download-exit-back");
+    flow.hidden = true;
+    intro.hidden = false;
+    entry.setAttribute("aria-expanded", "false");
+    const entering = animateFlow(intro, "download-enter-back");
+    entry.focus();
+    await entering;
+    transitioning = false;
+  }
+
+  entry.addEventListener("click", (event) => {
+    event.preventDefault();
+    show("kind");
+  });
+
+  flow.querySelectorAll<HTMLButtonElement>("[data-flow-kind]").forEach((button) => button.addEventListener("click", () => {
+    confirmChoice(button, () => {
+      kind = button.dataset.flowKind!;
+      if (kind === "pack") {
+        selection.hidden = true;
+        final.href = entry.href;
+        final.download = entry.download;
+        final.textContent = "Download ZIP";
+        return show("ready");
+      }
+      return show("platform");
+    });
+  }));
+
+  flow.querySelectorAll<HTMLButtonElement>("[data-flow-platform]").forEach((button) => button.addEventListener("click", () => {
+    confirmChoice(button, () => {
+      for (const field of fileFields) field.hidden = field.dataset.fileField !== button.dataset.flowPlatform;
+      fileField = fileFields.find((field) => !field.hidden);
+      continueButton.disabled = !fileField?.querySelector<HTMLDetailsElement>("[data-choice-dropdown]")?.dataset.choiceValue;
+      return show("file");
+    });
+  }));
+
+  fileFields.forEach((field) => field.querySelector("[data-choice-dropdown]")!.addEventListener("change", () => {
+    continueButton.disabled = !fileField?.querySelector<HTMLDetailsElement>("[data-choice-dropdown]")?.dataset.choiceValue;
+  }));
+
+  continueButton.addEventListener("click", () => {
+    if (transitioning || confirming) return;
+    const dropdown = fileField?.querySelector<HTMLDetailsElement>("[data-choice-dropdown]");
+    const path = dropdown?.dataset.choiceValue;
+    if (!path) return;
+    const file = dropdown?.querySelector<HTMLButtonElement>('[data-choice-option][aria-pressed="true"]');
+    selection.textContent = file?.dataset.label ?? "";
+    selection.hidden = false;
+    final.href = `${flow.dataset.base}/${path}`;
+    final.download = path.split("/").pop()!;
+    final.textContent = "Download file";
+    show("ready");
+  });
+
+  back.addEventListener("click", () => {
+    if (transitioning || confirming) return;
+    if (current === "ready") show(kind === "pack" ? "kind" : "file", "back");
+    else show(current === "file" ? "platform" : "kind", "back");
+  });
+
+  closeButton.addEventListener("click", close);
+
+  if (location.hash === "#download") show("kind");
+</script>

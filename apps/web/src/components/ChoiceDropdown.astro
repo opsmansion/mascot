@@ -1,0 +1,31 @@
+---
+import ChoiceCheck from "./ChoiceCheck.astro";
+
+interface Props {
+  id: string;
+  label: string;
+  placeholder: string;
+  options: { value: string; label: string }[];
+  initialValue?: string;
+}
+
+const { id, label, placeholder, options, initialValue } = Astro.props;
+---
+
+<div class="field choice-dropdown-field">
+  <span id={`${id}-label`}>{label}</span>
+  <details id={id} class="choice-dropdown" data-choice-dropdown data-choice-value={initialValue}>
+    <summary aria-labelledby={`${id}-label ${id}-value`}>
+      <span id={`${id}-value`} data-choice-label>{placeholder}</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+    </summary>
+    <div class="choice-dropdown-options" role="group" aria-labelledby={`${id}-label`}>
+      {options.map((option) => (
+        <button class="choice-dropdown-option" type="button" data-choice-option data-value={option.value} data-label={option.label} aria-pressed={initialValue === option.value ? "true" : "false"}>
+          <span>{option.label}</span>
+          <ChoiceCheck />
+        </button>
+      ))}
+    </div>
+  </details>
+</div>

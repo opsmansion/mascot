@@ -1,0 +1,53 @@
+---
+import Base from "../layouts/Base.astro";
+import { iconSvg, mascots } from "@opesi-mascots/engine";
+---
+
+<Base
+  title="Mascots | Free app icons"
+  description="Free mascot app icons by Opesi Mansion, in every size iOS, Android, macOS, and the web need. No sign-up, no payment, just credit Opesi Mansion."
+>
+  <section class="hero">
+    <h1>Free app icons with a face.</h1>
+  </section>
+
+  <section class="catalog-search" aria-label="Find a mascot" hidden>
+    <label class="field">
+      <span>Search mascots</span>
+      <input id="mascot-search" type="search" autocomplete="off" aria-controls="mascot-grid" />
+    </label>
+    <p id="search-count" class="catalog-count" role="status" aria-live="polite" hidden></p>
+  </section>
+
+  <p id="search-empty" hidden>No mascots found.</p>
+  <section id="mascot-grid" class="grid mascot-grid" aria-label="Choose a mascot">
+    {
+      mascots.map((m) => (
+        <a class="card mascot-card" href={`/${m.slug}#download`} data-search={`${m.name} ${m.about}`.toLowerCase()}>
+          <div class="icon" aria-hidden="true" set:html={iconSvg(m, { layout: "rounded", id: `card-${m.slug}` })} />
+          <h2>{m.name}</h2>
+        </a>
+      ))
+    }
+  </section>
+</Base>
+
+<script>
+  const search = document.querySelector<HTMLInputElement>("#mascot-search")!;
+  const cards = [...document.querySelectorAll<HTMLElement>("#mascot-grid .card")];
+  const count = document.querySelector<HTMLElement>("#search-count")!;
+  const empty = document.querySelector<HTMLElement>("#search-empty")!;
+  search.closest<HTMLElement>(".catalog-search")!.hidden = false;
+
+  search.addEventListener("input", () => {
+    const query = search.value.trim().toLowerCase();
+    let visible = 0;
+    for (const card of cards) {
+      card.hidden = !card.dataset.search?.includes(query);
+      if (!card.hidden) visible++;
+    }
+    count.textContent = `${visible} ${visible === 1 ? "mascot" : "mascots"}`;
+    count.hidden = query.length === 0;
+    empty.hidden = visible !== 0;
+  });
+</script>

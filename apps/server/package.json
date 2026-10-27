@@ -1,0 +1,19 @@
+{
+  "name": "@opesi-mascots/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.mjs",
+    "start": "node src/index.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.5",
+    "@opesi-mascots/engine": "workspace:*",
+    "hono": "^4.13.14"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.5"
+  }
+}

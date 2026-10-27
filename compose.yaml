@@ -1,0 +1,21 @@
+# Opesi Mansion Mascots on a server that already runs Nginx on ports 80 and 443.
+# The container listens on 127.0.0.1 only; Nginx (deploy/nginx-mascots.conf) is the public entry point.
+# Start with: docker compose up -d --build
+services:
+  mascots:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MASCOTS_PORT:-3300}:3000"
+    environment:
+      # Nginx replaces X-Forwarded-For with the visitor's address, so the per-visitor limit can trust it.
+      MASCOTS_TRUST_PROXY: "1"
+      MASCOTS_MAKER_RATE_PER_MINUTE: "${MASCOTS_MAKER_RATE_PER_MINUTE:-6}"
+      MASCOTS_MAX_CONCURRENT: "${MASCOTS_MAX_CONCURRENT:-2}"
+      MASCOTS_MAX_QUEUE: "${MASCOTS_MAX_QUEUE:-20}"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/healthz').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

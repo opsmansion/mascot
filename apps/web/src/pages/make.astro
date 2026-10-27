@@ -1,0 +1,300 @@
+---
+import Base from "../layouts/Base.astro";
+import ChoiceDropdown from "../components/ChoiceDropdown.astro";
+import {
+  bodies,
+  buildMascot,
+  creditLine,
+  defaultSpec,
+  eyes,
+  finishes,
+  hats,
+  iconSvg,
+  LICENCE_NAME,
+  LICENCE_URL,
+  mascots,
+  mouths,
+  toParams,
+} from "@opesi-mascots/engine";
+
+const initial = buildMascot(defaultSpec);
+const values = Object.fromEntries(toParams(defaultSpec));
+const labels = (options: Record<string, { label: string } | string>) =>
+  Object.entries(options).map(([value, option]) => [value, typeof option === "string" ? option : option.label]);
+
+// Field names are the short share-link keys from src/lib/maker.mjs.
+const choiceGroups = [
+  { legend: "Body", question: "Choose a body", name: "b", options: labels(bodies) },
+  { legend: "Hat", question: "Add a hat", name: "h", options: labels(hats) },
+  { legend: "Eyes", question: "Choose eyes", name: "i", options: labels(eyes) },
+  { legend: "Mouth", question: "Choose a mouth", name: "m", options: labels(mouths) },
+  { legend: "Finish", name: "f", options: labels(finishes) },
+];
+const colourFields = [
+  { name: "c", label: "Body" },
+  { name: "hc", label: "Hat" },
+  { name: "t", label: "Background top" },
+  { name: "u", label: "Background bottom" },
+  { name: "e", label: "Face" },
+];
+const previewSizes = [96, 60, 40, 29];
+---
+
+<Base
+  title="Make a mascot | Mascots"
+  description="Make your own mascot app icon and download every iOS, Android, macOS, and web size for free. Credit Opesi Mansion."
+>
+  <section class="hero">
+    <h1>Make your own mascot.</h1>
+  </section>
+
+  <div class="maker">
+    <div class="maker-preview">
+      <div id="preview" class="icon" role="img" aria-label="Your mascot" set:html={iconSvg(initial, { layout: "rounded", id: "make" })} />
+      <div class="maker-sizes" aria-hidden="true">
+        {
+          previewSizes.map((size, i) => (
+            <div class="icon" data-preview style={`width: ${size}px`} set:html={iconSvg(initial, { layout: "rounded", id: `make-${i}` })} />
+          ))
+        }
+      </div>
+      <div class="credit">
+        <p><a href={LICENCE_URL}>{LICENCE_NAME}</a> · Credit Opesi Mansion</p>
+        <code id="credit">{creditLine(defaultSpec.name, "/make")}</code>
+      </div>
+      <noscript><p class="small">Without JavaScript the preview does not change, but the download uses everything you pick.</p></noscript>
+    </div>
+
+    <form id="maker" class="maker-controls" method="get" action="/api/make.zip">
+      <p id="maker-step-count" class="maker-step-count" aria-live="polite" hidden></p>
+      <section class="maker-step" data-maker-step>
+        <h2 tabindex="-1">Where should we start?</h2>
+        <ChoiceDropdown
+          id="start"
+          label="Start from"
+          placeholder="A blank mascot"
+          initialValue=""
+          options={[{ value: "", label: "A blank mascot" }, ...mascots.map((m) => ({ value: m.slug, label: m.name }))]}
+        />
+        <button type="button" id="random" class="button secondary">Surprise me</button>
+      </section>
+
+      {
+        choiceGroups.slice(0, 4).map((group) => (
+          <section class="maker-step maker-choice-step" data-maker-step>
+            <h2 tabindex="-1">{group.question}</h2>
+            <fieldset aria-label={group.legend}>
+              <div class="pills">
+                {group.options.map(([value, label]) => (
+                  <label class="pill">
+                    <input type="radio" name={group.name} value={value} checked={values[group.name] === value} />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </section>
+        ))
+      }
+
+      <section class="maker-step" data-maker-step>
+        <h2 tabindex="-1">Ready to download?</h2>
+        <label class="field">
+          <span>Name</span>
+          <input name="n" type="text" maxlength="40" value={values.n} autocomplete="off" />
+        </label>
+
+        <details class="file-group">
+          <summary>More options</summary>
+          <div class="maker-controls">
+            <fieldset>
+              <legend>{choiceGroups[4].legend}</legend>
+              <div class="pills">
+                {choiceGroups[4].options.map(([value, label]) => (
+                  <label class="pill">
+                    <input type="radio" name={choiceGroups[4].name} value={value} checked={values[choiceGroups[4].name] === value} />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>Extras</legend>
+              <div class="pills">
+                <label class="pill"><input type="checkbox" name="k" value="1" checked={values.k === "1"} /><span>Cheeks</span></label>
+                <label class="pill"><input type="checkbox" name="s" value="1" checked={values.s === "1"} /><span>Sparkles</span></label>
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>Colours</legend>
+              <div class="swatches">
+                {
+                  colourFields.map((field) => (
+                    <label class="swatch" data-colour={field.name}>
+                      <input type="color" name={field.name} value={values[field.name]} />
+                      <span>{field.label}</span>
+                    </label>
+                  ))
+                }
+              </div>
+            </fieldset>
+          </div>
+        </details>
+
+        <button type="submit" id="download" class="button">Download all sizes (.zip)</button>
+        <p id="status" class="small" role="status" hidden></p>
+      </section>
+
+      <div id="maker-navigation" class="download-actions" hidden>
+        <button id="maker-back" class="button secondary" type="button">Back</button>
+        <button id="maker-next" class="button" type="button">Continue</button>
+      </div>
+    </form>
+  </div>
+</Base>
+
+<script>
+  import { buildMascot, creditLine, defaultSpec, findMascot, fromParams, iconSvg, randomSpec, slugify, toParams } from "@opesi-mascots/engine";
+  import { animateFlow } from "../flow";
+  import { initChoiceDropdowns } from "../choice-dropdown";
+
+  initChoiceDropdowns();
+
+  const form = document.querySelector<HTMLFormElement>("#maker")!;
+  const preview = document.querySelector<HTMLElement>("#preview")!;
+  const previews = [...document.querySelectorAll<HTMLElement>("[data-preview]")];
+  const credit = document.querySelector<HTMLElement>("#credit")!;
+  const status = document.querySelector<HTMLElement>("#status")!;
+  const downloadButton = document.querySelector<HTMLButtonElement>("#download")!;
+  const hatColour = document.querySelector<HTMLElement>('[data-colour="hc"]')!;
+  const steps = [...form.querySelectorAll<HTMLElement>("[data-maker-step]")];
+  const progress = form.querySelector<HTMLElement>("#maker-step-count")!;
+  const navigation = form.querySelector<HTMLElement>("#maker-navigation")!;
+  const back = form.querySelector<HTMLButtonElement>("#maker-back")!;
+  const next = form.querySelector<HTMLButtonElement>("#maker-next")!;
+  let activeStep = 0;
+  let transitioning = false;
+  let visitedSteps = [0];
+
+  const readSpec = () => fromParams(new URLSearchParams(new FormData(form) as unknown as Record<string, string>));
+
+  function writeSpec(spec: Parameters<typeof toParams>[0]) {
+    for (const [key, value] of toParams(spec)) {
+      const field = form.elements.namedItem(key) as HTMLInputElement | RadioNodeList | null;
+      if (field instanceof HTMLInputElement && field.type === "checkbox") field.checked = value === "1";
+      else if (field) field.value = value;
+    }
+  }
+
+  function render() {
+    const spec = readSpec();
+    const mascot = buildMascot(spec);
+    preview.innerHTML = iconSvg(mascot, { layout: "rounded", id: "make" });
+    previews.forEach((el, i) => (el.innerHTML = iconSvg(mascot, { layout: "rounded", id: `make-${i}` })));
+    credit.textContent = creditLine(spec.name, "/make");
+    hatColour.hidden = spec.hat === "none";
+    history.replaceState(null, "", `#${toParams(spec)}`);
+  }
+
+  function updateNavigation() {
+    progress.textContent = `Step ${activeStep + 1} of ${steps.length}`;
+    back.hidden = visitedSteps.length < 2;
+    next.hidden = activeStep === steps.length - 1;
+  }
+
+  async function showStep(index: number, direction: "forward" | "back") {
+    if (transitioning) return;
+    transitioning = true;
+    const previous = steps[activeStep];
+    await animateFlow(previous, `download-exit-${direction}`);
+    previous.hidden = true;
+    activeStep = index;
+    const current = steps[activeStep];
+    current.hidden = false;
+    updateNavigation();
+    const entering = animateFlow(current, `download-enter-${direction}`);
+    current.querySelector<HTMLElement>("h2")!.focus();
+    await entering;
+    transitioning = false;
+  }
+
+  function advanceTo(index: number) {
+    if (transitioning || index === activeStep) return;
+    visitedSteps.push(index);
+    showStep(index, "forward");
+  }
+
+  function goBack() {
+    if (transitioning || visitedSteps.length < 2) return;
+    visitedSteps.pop();
+    showStep(visitedSteps[visitedSteps.length - 1], "back");
+  }
+
+  // Without JavaScript the form submits straight to the server and the browser saves the zip.
+  // With it, the zip is fetched here so the page can show progress and any message from the server.
+  async function download(event: SubmitEvent) {
+    event.preventDefault();
+    if (activeStep !== steps.length - 1) {
+      advanceTo(steps.length - 1);
+      return;
+    }
+    const spec = readSpec();
+    downloadButton.disabled = true;
+    status.hidden = false;
+    status.textContent = "Drawing every size on our server. This takes a few seconds.";
+    try {
+      const response = await fetch(`${form.action}?${toParams(spec)}`);
+      if (!response.ok) {
+        const page = new DOMParser().parseFromString(await response.text(), "text/html");
+        status.textContent = page.querySelector("p")?.textContent || "The download failed. Please try again.";
+        return;
+      }
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(await response.blob());
+      link.download = `${slugify(spec.name)}-app-icons.zip`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 60_000);
+      status.textContent = `Saved ${link.download}. Please credit Opesi Mansion where you use it.`;
+    } catch {
+      status.textContent = "Could not reach the server. Check your connection and try again.";
+    } finally {
+      downloadButton.disabled = false;
+    }
+  }
+
+  form.addEventListener("input", (event) => {
+    const target = event.target as HTMLInputElement;
+    if (target.name === "h") writeSpec({ ...readSpec(), hatColor: undefined });
+    render();
+  });
+  form.addEventListener("submit", download);
+
+  back.addEventListener("click", goBack);
+  next.addEventListener("click", () => advanceTo(activeStep + 1));
+
+  document.querySelector<HTMLDetailsElement>("#start")!.addEventListener("change", (event) => {
+    const mascot = findMascot((event.currentTarget as HTMLDetailsElement).dataset.choiceValue ?? "");
+    writeSpec(mascot ?? defaultSpec);
+    render();
+    if (mascot) advanceTo(steps.length - 1);
+  });
+
+  document.querySelector("#random")!.addEventListener("click", () => {
+    writeSpec(randomSpec(readSpec().name));
+    render();
+    advanceTo(steps.length - 1);
+  });
+
+  // A shared link opens the mascot it describes.
+  const sharedLink = location.hash.length > 1;
+  if (sharedLink) writeSpec(fromParams(new URLSearchParams(location.hash.slice(1))));
+  render();
+  activeStep = sharedLink ? steps.length - 1 : 0;
+  visitedSteps = sharedLink ? steps.map((_, index) => index) : [0];
+  steps.forEach((step, index) => (step.hidden = index !== activeStep));
+  progress.hidden = false;
+  navigation.hidden = false;
+  updateNavigation();
+</script>
